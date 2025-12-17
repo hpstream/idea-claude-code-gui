@@ -25,6 +25,7 @@ public class HandlerContext {
     private ClaudeSession session;
     private JBCefBrowser browser;
     private String currentModel = "claude-sonnet-4-5";
+    private Integer currentModelMaxTokens = 200_000; // 默认 200K
     private String currentProvider = "claude";
     private volatile boolean disposed = false;
 
@@ -79,6 +80,10 @@ public class HandlerContext {
         return currentModel;
     }
 
+    public Integer getCurrentModelMaxTokens() {
+        return currentModelMaxTokens;
+    }
+
     public String getCurrentProvider() {
         return currentProvider;
     }
@@ -98,6 +103,10 @@ public class HandlerContext {
 
     public void setCurrentModel(String currentModel) {
         this.currentModel = currentModel;
+    }
+
+    public void setCurrentModelMaxTokens(Integer maxTokens) {
+        this.currentModelMaxTokens = maxTokens;
     }
 
     public void setCurrentProvider(String currentProvider) {

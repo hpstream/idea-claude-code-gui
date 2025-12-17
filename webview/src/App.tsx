@@ -566,7 +566,17 @@ const App = () => {
     } else if (currentProvider === 'codex') {
       setSelectedCodexModel(modelId);
     }
-    sendBridgeMessage('set_model', modelId);
+
+    // 获取模型配置（包含 maxTokens）
+    const models = currentProvider === 'codex' ? CODEX_MODELS : CLAUDE_MODELS;
+    const modelInfo = models.find(m => m.id === modelId);
+    const maxTokens = modelInfo?.maxTokens || 200_000; // 默认 200K
+
+    // 发送模型和上下文容量
+    sendBridgeMessage('set_model', JSON.stringify({
+      model: modelId,
+      maxTokens: maxTokens
+    }));
   };
 
   /**
@@ -576,9 +586,16 @@ const App = () => {
     setCurrentProvider(providerId);
     sendBridgeMessage('set_provider', providerId);
 
-    // 切换 provider 时,同时发送对应的模型
+    // 切换 provider 时,同时发送对应的模型和上下文容量
     const newModel = providerId === 'codex' ? selectedCodexModel : selectedClaudeModel;
-    sendBridgeMessage('set_model', newModel);
+    const models = providerId === 'codex' ? CODEX_MODELS : CLAUDE_MODELS;
+    const modelInfo = models.find(m => m.id === newModel);
+    const maxTokens = modelInfo?.maxTokens || 200_000; // 默认 200K
+
+    sendBridgeMessage('set_model', JSON.stringify({
+      model: newModel,
+      maxTokens: maxTokens
+    }));
   };
 
   const interruptSession = () => {

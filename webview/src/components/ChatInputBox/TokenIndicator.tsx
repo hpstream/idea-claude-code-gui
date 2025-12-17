@@ -1,5 +1,5 @@
-import { useTranslation } from 'react-i18next';
-import type { TokenIndicatorProps } from './types';
+import { useTranslation } from "react-i18next";
+import type { TokenIndicatorProps } from "./types";
 
 /**
  * TokenIndicator - 使用量圆环进度条组件
@@ -29,7 +29,7 @@ export const TokenIndicator = ({
     : `${rounded.toFixed(1)}%`;
 
   const formatTokens = (value?: number) => {
-    if (typeof value !== 'number' || !isFinite(value)) return undefined;
+    if (typeof value !== "number" || !isFinite(value)) return undefined;
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
     return `${value}`;
@@ -37,9 +37,10 @@ export const TokenIndicator = ({
 
   const usedText = formatTokens(usedTokens);
   const maxText = formatTokens(maxTokens);
-  const tooltip = usedText && maxText
-    ? `${formattedPercentage} · ${usedText} / ${maxText} ${t('chat.context')}`
-    : t('chat.usagePercentage', { percentage: formattedPercentage });
+  const tooltip =
+    usedText && maxText
+      ? `${formattedPercentage} · ${usedText} / ${maxText} ${t("chat.context")}`
+      : t("chat.usagePercentage", { percentage: formattedPercentage });
 
   return (
     <div className="token-indicator">
@@ -68,9 +69,7 @@ export const TokenIndicator = ({
           />
         </svg>
         {/* 悬停气泡 */}
-        <div className="token-tooltip">
-          {tooltip}
-        </div>
+        <div className="token-tooltip">{tooltip}</div>
       </div>
       <span className="token-percentage-label">{formattedPercentage}</span>
     </div>

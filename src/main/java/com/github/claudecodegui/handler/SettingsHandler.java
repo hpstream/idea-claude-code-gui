@@ -26,13 +26,6 @@ public class SettingsHandler extends BaseMessageHandler {
         "get_usage_statistics"
     };
 
-    private static final Map<String, Integer> MODEL_CONTEXT_LIMITS = new HashMap<>();
-    static {
-        MODEL_CONTEXT_LIMITS.put("claude-sonnet-4-5", 200_000);
-        MODEL_CONTEXT_LIMITS.put("claude-opus-4-5-20251101", 200_000);
-        MODEL_CONTEXT_LIMITS.put("claude-haiku-4-5", 200_000);
-    }
-
     public SettingsHandler(HandlerContext context) {
         super(context);
     }
@@ -101,6 +94,8 @@ public class SettingsHandler extends BaseMessageHandler {
     private void handleSetModel(String content) {
         try {
             String model = content;
+            Integer maxTokens = null;
+
             if (content != null && !content.isEmpty()) {
                 try {
                     Gson gson = new Gson();
@@ -108,13 +103,22 @@ public class SettingsHandler extends BaseMessageHandler {
                     if (json.has("model")) {
                         model = json.get("model").getAsString();
                     }
+                    if (json.has("maxTokens")) {
+                        maxTokens = json.get("maxTokens").getAsInt();
+                    }
                 } catch (Exception e) {
                     // content 本身就是 model
                 }
             }
 
-            System.out.println("[SettingsHandler] Setting model to: " + model);
+            System.out.println("[SettingsHandler] Setting model to: " + model +
+                               (maxTokens != null ? " (maxTokens: " + maxTokens + ")" : ""));
             context.setCurrentModel(model);
+
+            // 保存 maxTokens 到 context
+            if (maxTokens != null) {
+                context.setCurrentModelMaxTokens(maxTokens);
+            }
 
             if (context.getSession() != null) {
                 context.getSession().setModel(model);
@@ -303,12 +307,5 @@ public class SettingsHandler extends BaseMessageHandler {
                 });
             }
         });
-    }
-
-    /**
-     * 获取模型上下文限制
-     */
-    public static int getModelContextLimit(String model) {
-        return MODEL_CONTEXT_LIMITS.getOrDefault(model, 200_000);
     }
 }

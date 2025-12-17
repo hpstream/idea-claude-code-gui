@@ -91,11 +91,6 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
      */
     public static class ClaudeChatWindow {
         private static final String NODE_PATH_PROPERTY_KEY = "claude.code.node.path";
-        private static final Map<String, Integer> MODEL_CONTEXT_LIMITS = new java.util.HashMap<>();
-        static {
-            MODEL_CONTEXT_LIMITS.put("claude-sonnet-4-5", 200_000);
-            MODEL_CONTEXT_LIMITS.put("claude-opus-4-5-20251101", 200_000);
-        }
 
         private final JPanel mainPanel;
         private final ClaudeSDKBridge claudeSDKBridge;
@@ -774,7 +769,10 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
                 int cacheReadTokens = lastUsage != null && lastUsage.has("cache_read_input_tokens") ? lastUsage.get("cache_read_input_tokens").getAsInt() : 0;
 
                 int usedTokens = inputTokens + cacheWriteTokens + cacheReadTokens;
-                int maxTokens = MODEL_CONTEXT_LIMITS.getOrDefault(currentModel, 200_000);
+                // 使用 HandlerContext 中的动态 maxTokens，如果不存在则使用默认值
+                int maxTokens = handlerContext.getCurrentModelMaxTokens() != null
+                    ? handlerContext.getCurrentModelMaxTokens()
+                    : 200_000;
                 int percentage = Math.min(100, maxTokens > 0 ? (int) ((usedTokens * 100.0) / maxTokens) : 0);
 
                 JsonObject usageUpdate = new JsonObject();
@@ -833,7 +831,10 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
                     callJavaScript("updateStatus", JsUtils.escapeJs("新会话已创建，可以开始提问"));
 
                     // 重置 Token 使用统计
-                    int maxTokens = MODEL_CONTEXT_LIMITS.getOrDefault(currentModel, 200_000);
+                    // 使用 HandlerContext 中的动态 maxTokens，如果不存在则使用默认值
+                    int maxTokens = handlerContext.getCurrentModelMaxTokens() != null
+                        ? handlerContext.getCurrentModelMaxTokens()
+                        : 200_000;
                     JsonObject usageUpdate = new JsonObject();
                     usageUpdate.addProperty("percentage", 0);
                     usageUpdate.addProperty("totalTokens", 0);

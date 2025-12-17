@@ -25,11 +25,11 @@ export interface Attachment {
  * 图片媒体类型常量
  */
 export const IMAGE_MEDIA_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
 ] as const;
 
 export type ImageMediaType = (typeof IMAGE_MEDIA_TYPES)[number];
@@ -49,11 +49,11 @@ export function isImageAttachment(attachment: Attachment): boolean {
  * 补全项类型
  */
 export type CompletionType =
-  | 'file'
-  | 'directory'
-  | 'command'
-  | 'separator'
-  | 'section-header';
+  | "file"
+  | "directory"
+  | "command"
+  | "separator"
+  | "section-header";
 
 /**
  * 下拉菜单项数据
@@ -84,7 +84,7 @@ export interface FileItem {
   /** 相对路径 */
   path: string;
   /** 类型 */
-  type: 'file' | 'directory';
+  type: "file" | "directory";
   /** 扩展名 */
   extension?: string;
 }
@@ -138,7 +138,11 @@ export interface TriggerQuery {
 /**
  * 对话权限模式
  */
-export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions';
+export type PermissionMode =
+  | "default"
+  | "acceptEdits"
+  | "plan"
+  | "bypassPermissions";
 
 /**
  * 模式信息
@@ -153,10 +157,10 @@ export interface ModeInfo {
  * 预定义模式列表
  */
 export const AVAILABLE_MODES: ModeInfo[] = [
-  { id: 'default', label: '默认模式', icon: 'codicon-comment-discussion' },
-  { id: 'acceptEdits', label: '代理模式', icon: 'codicon-robot' },
-  { id: 'plan', label: '规划模式', icon: 'codicon-tasklist' },
-  { id: 'bypassPermissions', label: '自动模式', icon: 'codicon-zap' },
+  { id: "default", label: "默认模式", icon: "codicon-comment-discussion" },
+  { id: "acceptEdits", label: "代理模式", icon: "codicon-robot" },
+  { id: "plan", label: "规划模式", icon: "codicon-tasklist" },
+  { id: "bypassPermissions", label: "自动模式", icon: "codicon-zap" },
 ];
 
 /**
@@ -166,6 +170,7 @@ export interface ModelInfo {
   id: string;
   label: string;
   description?: string;
+  maxTokens?: number; // 模型最大上下文 token 数
 }
 
 /**
@@ -173,19 +178,22 @@ export interface ModelInfo {
  */
 export const CLAUDE_MODELS: ModelInfo[] = [
   {
-    id: 'claude-sonnet-4-5',
-    label: 'Sonnet 4.5',
-    description: 'Sonnet 4.5 · Use the default model',
+    id: "claude-sonnet-4-5",
+    label: "Sonnet 4.5",
+    description: "Sonnet 4.5 · Use the default model",
+    maxTokens: 200_000,
   },
   {
-    id: 'claude-opus-4-5-20251101',
-    label: 'Opus 4.5',
-    description: 'Opus 4.5 · Most capable for complex work',
+    id: "claude-opus-4-5-20251101",
+    label: "Opus 4.5",
+    description: "Opus 4.5 · Most capable for complex work",
+    maxTokens: 300_000,
   },
   {
-    id: 'claude-haiku-4-5',
-    label: 'Haiku 4.5',
-    description: 'Haiku 4.5 · Fastest for quick answers',
+    id: "claude-haiku-4-5",
+    label: "Haiku 4.5",
+    description: "Haiku 4.5 · Fastest for quick answers",
+    maxTokens: 400_000,
   },
 ];
 
@@ -194,19 +202,22 @@ export const CLAUDE_MODELS: ModelInfo[] = [
  */
 export const CODEX_MODELS: ModelInfo[] = [
   {
-    id: 'gpt-5.1-codex',
-    label: 'gpt-5.1-codex',
-    description: '针对codex进行了优化'
+    id: "gpt-5.1-codex",
+    label: "gpt-5.1-codex",
+    description: "针对codex进行了优化",
+    maxTokens: 128_000,
   },
   {
-    id: 'gpt-5.1-codex-mini',
-    label: 'gpt-5.1-codex-mini',
-    description: '针对codex进行了优化。更便宜、更快，但性能较差'
+    id: "gpt-5.1-codex-mini",
+    label: "gpt-5.1-codex-mini",
+    description: "针对codex进行了优化。更便宜、更快，但性能较差",
+    maxTokens: 128_000,
   },
   {
-    id: 'gpt-5.1',
-    label: 'gpt-5.1',
-    description: '具有广泛的世界知识和强大的一般推理能力'
+    id: "gpt-5.1",
+    label: "gpt-5.1",
+    description: "具有广泛的世界知识和强大的一般推理能力",
+    maxTokens: 128_000,
   },
 ];
 
@@ -229,9 +240,19 @@ export interface ProviderInfo {
  * 预定义提供商列表
  */
 export const AVAILABLE_PROVIDERS: ProviderInfo[] = [
-  { id: 'claude', label: 'Claude Code', icon: 'codicon-terminal', enabled: true },
-  { id: 'codex', label: 'Codex Cli', icon: 'codicon-terminal', enabled: false },
-  { id: 'gemini', label: 'Gemini Cli', icon: 'codicon-terminal', enabled: false },
+  {
+    id: "claude",
+    label: "Claude Code",
+    icon: "codicon-terminal",
+    enabled: true,
+  },
+  { id: "codex", label: "Codex Cli", icon: "codicon-terminal", enabled: false },
+  {
+    id: "gemini",
+    label: "Gemini Cli",
+    icon: "codicon-terminal",
+    enabled: false,
+  },
 ];
 
 // ============================================================
