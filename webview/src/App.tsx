@@ -572,6 +572,21 @@ const App = () => {
     const modelInfo = models.find(m => m.id === modelId);
     const maxTokens = modelInfo?.maxTokens || 200_000; // 默认 200K
 
+    // 立即更新前端状态
+    setUsageMaxTokens(maxTokens);
+
+    // 重新计算百分比（使用当前已使用的 token 数，如果未定义则视为 0）
+    const currentUsedTokens = usageUsedTokens ?? 0;
+    if (maxTokens > 0) {
+      const newPercentage = Math.min(100, Math.round((currentUsedTokens * 100.0) / maxTokens));
+      setUsagePercentage(newPercentage);
+      console.log('[Frontend] Model changed, recalculated percentage:', {
+        usedTokens: currentUsedTokens,
+        maxTokens,
+        percentage: newPercentage
+      });
+    }
+
     // 发送模型和上下文容量
     sendBridgeMessage('set_model', JSON.stringify({
       model: modelId,
@@ -591,6 +606,21 @@ const App = () => {
     const models = providerId === 'codex' ? CODEX_MODELS : CLAUDE_MODELS;
     const modelInfo = models.find(m => m.id === newModel);
     const maxTokens = modelInfo?.maxTokens || 200_000; // 默认 200K
+
+    // 立即更新前端状态
+    setUsageMaxTokens(maxTokens);
+
+    // 重新计算百分比（使用当前已使用的 token 数，如果未定义则视为 0）
+    const currentUsedTokens = usageUsedTokens ?? 0;
+    if (maxTokens > 0) {
+      const newPercentage = Math.min(100, Math.round((currentUsedTokens * 100.0) / maxTokens));
+      setUsagePercentage(newPercentage);
+      console.log('[Frontend] Provider changed, recalculated percentage:', {
+        usedTokens: currentUsedTokens,
+        maxTokens,
+        percentage: newPercentage
+      });
+    }
 
     sendBridgeMessage('set_model', JSON.stringify({
       model: newModel,
