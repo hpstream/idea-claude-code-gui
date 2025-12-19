@@ -882,14 +882,24 @@ export const ChatInputBox = ({
       setHasContent(!!value.trim());
       adjustHeight();
 
+      // 如果 value 包含 @ 文件引用，延迟渲染标签
+      if (value.includes('@')) {
+        setTimeout(() => {
+          renderFileTags();
+        }, 50);
+      }
+
       // 将光标移到末尾
       if (value) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        range.selectNodeContents(editableRef.current);
-        range.collapse(false); // false = 折叠到末尾
-        selection?.removeAllRanges();
-        selection?.addRange(range);
+        setTimeout(() => {
+          if (!editableRef.current) return;
+          const range = document.createRange();
+          const selection = window.getSelection();
+          range.selectNodeContents(editableRef.current);
+          range.collapse(false); // false = 折叠到末尾
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }, 100);
       }
     }
   }, [value, getTextContent, adjustHeight]);
@@ -1035,6 +1045,36 @@ export const ChatInputBox = ({
   }, []);
 
   /**
+   * 添加单个附件（内部辅助函数）
+   * 根据是否有外部 attachments prop 来决定使用外部还是内部状态
+   */
+  const addSingleAttachment = useCallback((attachment: Attachment) => {
+    if (externalAttachments !== undefined) {
+      // 使用外部状态：通过回调通知父组件
+      // 创建一个虚拟的 File 对象来匹配 onAddAttachment 的签名
+      // 但这样做不够优雅，更好的方式是让父组件也支持直接添加 Attachment 对象
+      // 这里我们直接修改为使用内部状态，然后在外部模式下手动添加
+      if (onAddAttachment) {
+        // 将 attachment 转换为 File 对象
+        const byteString = atob(attachment.data);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: attachment.mediaType });
+        const file = new File([blob], attachment.fileName, { type: attachment.mediaType });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        onAddAttachment(dataTransfer.files);
+      }
+    } else {
+      // 使用内部状态
+      setInternalAttachments(prev => [...prev, attachment]);
+    }
+  }, [externalAttachments, onAddAttachment]);
+
+  /**
    * 处理粘贴事件 - 检测图片和纯文本
    */
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -1077,7 +1117,7 @@ export const ChatInputBox = ({
               data: base64,
             };
 
-            setInternalAttachments(prev => [...prev, attachment]);
+            addSingleAttachment(attachment);
           };
           reader.readAsDataURL(blob);
         }
@@ -1130,7 +1170,7 @@ export const ChatInputBox = ({
         handleInput();
       }
     }
-  }, [generateId, handleInput]);
+  }, [generateId, handleInput, addSingleAttachment]);
 
   /**
    * 处理拖拽进入事件
@@ -1181,7 +1221,7 @@ export const ChatInputBox = ({
               data: base64,
             };
 
-            setInternalAttachments(prev => [...prev, attachment]);
+            addSingleAttachment(attachment);
           };
           reader.readAsDataURL(file);
         }
@@ -1250,7 +1290,7 @@ export const ChatInputBox = ({
         renderFileTags();
       }, 50);
     }
-  }, [generateId, getTextContent, renderFileTags, fileCompletion, commandCompletion, adjustHeight, onInput]);
+  }, [generateId, getTextContent, renderFileTags, fileCompletion, commandCompletion, adjustHeight, onInput, addSingleAttachment]);
 
   /**
    * 处理添加附件

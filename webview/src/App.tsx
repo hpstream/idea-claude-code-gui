@@ -89,6 +89,7 @@ const App = () => {
   const [usageUsedTokens, setUsageUsedTokens] = useState<number | undefined>(undefined);
   const [usageMaxTokens, setUsageMaxTokens] = useState<number | undefined>(undefined);
   const [inputValue, setInputValue] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [, setProviderConfigVersion] = useState(0);
 
   // 使用 useRef 存储最新的 provider 值，避免回调中的闭包问题
@@ -605,8 +606,9 @@ const App = () => {
       sendBridgeMessage('send_message', text);
     }
 
-    // 清空输入框状态
+    // 清空输入框状态和附件
     setInputValue('');
+    setAttachments([]);
   };
 
   /**
@@ -639,6 +641,33 @@ const App = () => {
     // 切换 provider 时,同时发送对应的模型
     const newModel = providerId === 'codex' ? selectedCodexModel : selectedClaudeModel;
     sendBridgeMessage('set_model', newModel);
+  };
+
+  /**
+   * 处理添加附件
+   */
+  const handleAddAttachment = (files: FileList) => {
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const attachment: Attachment = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+          fileName: file.name,
+          mediaType: file.type || 'application/octet-stream',
+          data: base64,
+        };
+        setAttachments(prev => [...prev, attachment]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  /**
+   * 处理移除附件
+   */
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
   const interruptSession = () => {
@@ -1324,10 +1353,13 @@ const App = () => {
             usageMaxTokens={usageMaxTokens}
             showUsage={true}
             value={inputValue}
+            attachments={attachments}
             placeholder={t('chat.inputPlaceholder')}
             onSubmit={handleSubmit}
             onStop={interruptSession}
             onInput={setInputValue}
+            onAddAttachment={handleAddAttachment}
+            onRemoveAttachment={handleRemoveAttachment}
             onModeSelect={handleModeSelect}
             onModelSelect={handleModelSelect}
             onProviderSelect={handleProviderSelect}

@@ -177,10 +177,14 @@ def webviewDir = file('webview')
 tasks.register('buildWebview', Exec) {
     workingDir webviewDir
 
+    // 设置环境变量以确保能找到 npm
+    environment PATH: System.getenv('PATH')
+
     if (System.getProperty('os.name').toLowerCase().contains('windows')) {
         commandLine 'cmd', '/c', 'npm', 'run', 'build'
     } else {
-        commandLine 'npm', 'run', 'build'
+        // macOS/Linux: 使用 sh -c 来执行命令，确保能找到 npm
+        commandLine 'sh', '-c', 'npm run build'
     }
 
     onlyIf { webviewDir.exists() }
