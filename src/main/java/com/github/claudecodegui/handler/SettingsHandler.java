@@ -817,6 +817,28 @@ public class SettingsHandler extends BaseMessageHandler {
             }
 
             LOG.info("[SettingsHandler] Set useLocalClaudeSettings to: " + useLocal);
+
+            // 重启会话以使用新的配置
+            if (context.getSession() != null) {
+                context.getSession().restart().thenRun(() -> {
+                    LOG.info("[SettingsHandler] Session restarted after local settings toggle");
+                }).exceptionally(ex -> {
+                    LOG.warn("[SettingsHandler] Failed to restart session: " + ex.getMessage());
+                    return null;
+                });
+            }
+
+            // 重新获取配置并推送给前端，更新 UI 显示
+            ApplicationManager.getApplication().invokeLater(() -> {
+                try {
+                    JsonObject config = context.getSettingsService().getCurrentClaudeConfig();
+                    Gson gson = new Gson();
+                    String configJson = gson.toJson(config);
+                    callJavaScript("window.updateCurrentClaudeConfig", escapeJs(configJson));
+                } catch (Exception e) {
+                    LOG.error("[SettingsHandler] Failed to get current claude config after toggle: " + e.getMessage(), e);
+                }
+            });
         } catch (Exception e) {
             LOG.error("[SettingsHandler] Failed to set useLocalClaudeSettings: " + e.getMessage(), e);
         }

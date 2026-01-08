@@ -343,11 +343,12 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
         }
 
         private void syncActiveProvider() {
-            try {
-                settingsService.applyActiveProviderToClaudeSettings();
-            } catch (Exception e) {
-                LOG.warn("Failed to sync active provider on startup: " + e.getMessage());
-            }
+            // 不再同步到 ~/.claude/settings.json，ai-bridge 会直接从 ~/.codemoss/config.json 读取
+            // try {
+            //     settingsService.applyActiveProviderToClaudeSettings();
+            // } catch (Exception e) {
+            //     LOG.warn("Failed to sync active provider on startup: " + e.getMessage());
+            // }
         }
 
         private void setupPermissionService() {

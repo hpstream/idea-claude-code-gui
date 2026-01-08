@@ -323,6 +323,7 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
 	    console.log('[DEBUG] Starting message loop...');
 
     let currentSessionId = resumeSessionId;
+    let userMessagePersisted = false;  // 标记用户消息是否已持久化
 
     // 流式输出
     let messageCount = 0;
@@ -352,6 +353,15 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
         } else if (typeof content === 'string') {
           console.log('[CONTENT]', content);
         }
+
+        // 持久化助手消息
+        if (currentSessionId && content) {
+          persistJsonlMessage(currentSessionId, cwd || workingDirectory, {
+            type: 'assistant',
+            message: { content: content }
+          });
+          console.log('[PERSIST] Assistant message saved for session:', currentSessionId);
+        }
       }
 
       // 实时输出工具调用结果（user 消息中的 tool_result）
@@ -371,6 +381,16 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
       if (msg.type === 'system' && msg.session_id) {
         currentSessionId = msg.session_id;
         console.log('[SESSION_ID]', msg.session_id);
+
+        // 持久化用户消息（仅在获取到 sessionId 后执行一次）
+        if (!userMessagePersisted && currentSessionId) {
+          persistJsonlMessage(currentSessionId, cwd || workingDirectory, {
+            type: 'user',
+            message: { content: [{ type: 'text', text: message }] }
+          });
+          userMessagePersisted = true;
+          console.log('[PERSIST] User message saved for session:', currentSessionId);
+        }
 
         // 输出 slash_commands（如果存在）
         if (msg.subtype === 'init' && Array.isArray(msg.slash_commands)) {
@@ -765,6 +785,7 @@ export async function sendMessageWithAttachments(message, resumeSessionId = null
 	    // }, 30000);
 
 		    let currentSessionId = resumeSessionId;
+		    let userMessagePersisted = false;  // 标记用户消息是否已持久化
 
 		    try {
 		    for await (const msg of result) {
@@ -785,6 +806,15 @@ export async function sendMessageWithAttachments(message, resumeSessionId = null
 	    	        } else if (typeof content === 'string') {
 	    	          console.log('[CONTENT]', content);
 	    	        }
+
+	    	        // 持久化助手消息
+	    	        if (currentSessionId && content) {
+	    	          persistJsonlMessage(currentSessionId, cwd || workingDirectory, {
+	    	            type: 'assistant',
+	    	            message: { content: content }
+	    	          });
+	    	          console.log('[PERSIST] Assistant message (with attachments) saved for session:', currentSessionId);
+	    	        }
 	    	      }
 
 	    	      // 实时输出工具调用结果（user 消息中的 tool_result）
@@ -803,6 +833,16 @@ export async function sendMessageWithAttachments(message, resumeSessionId = null
 	    	      if (msg.type === 'system' && msg.session_id) {
 	    	        currentSessionId = msg.session_id;
 	    	        console.log('[SESSION_ID]', msg.session_id);
+
+	    	        // 持久化用户消息（仅在获取到 sessionId 后执行一次）
+	    	        if (!userMessagePersisted && currentSessionId) {
+	    	          persistJsonlMessage(currentSessionId, cwd || workingDirectory, {
+	    	            type: 'user',
+	    	            message: { content: contentBlocks }
+	    	          });
+	    	          userMessagePersisted = true;
+	    	          console.log('[PERSIST] User message (with attachments) saved for session:', currentSessionId);
+	    	        }
 	    	      }
 
 	    	      // 检查是否收到错误结果消息（快速检测 API Key 错误）

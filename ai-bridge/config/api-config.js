@@ -3,10 +3,60 @@
  * 负责加载和管理 Claude API 配置
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir, platform } from 'os';
 import { execSync } from 'child_process';
+
+/**
+ * 获取临时 Claude 配置目录路径
+ * @returns {string} 临时配置目录路径
+ */
+function getClaudeConfigDir() {
+  return join(homedir(), '.codemoss', 'claude-config');
+}
+
+/**
+ * 将供应商配置写入临时配置目录
+ * SDK 会通过 CLAUDE_CONFIG_DIR 环境变量读取这个目录
+ * @param {Object} settings - 供应商的 settingsConfig
+ * @returns {string} 配置目录路径
+ */
+export function writeProviderConfigToTempDir(settings) {
+  const configDir = getClaudeConfigDir();
+  const settingsPath = join(configDir, 'settings.json');
+
+  // 确保目录存在
+  if (!existsSync(configDir)) {
+    mkdirSync(configDir, { recursive: true });
+    console.log('[DEBUG] Created temp config dir:', configDir);
+  }
+
+  // 写入配置文件
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+  console.log('[DEBUG] Wrote provider config to:', settingsPath);
+
+  return configDir;
+}
+
+/**
+ * 设置 CLAUDE_CONFIG_DIR 环境变量
+ * 让 SDK 读取我们的临时配置目录而不是 ~/.claude
+ * @param {string} configDir - 配置目录路径
+ */
+export function setClaudeConfigDir(configDir) {
+  process.env.CLAUDE_CONFIG_DIR = configDir;
+  console.log('[DEBUG] Set CLAUDE_CONFIG_DIR to:', configDir);
+}
+
+/**
+ * 清除 CLAUDE_CONFIG_DIR 环境变量
+ * 让 SDK 使用默认的 ~/.claude 目录
+ */
+export function clearClaudeConfigDir() {
+  delete process.env.CLAUDE_CONFIG_DIR;
+  console.log('[DEBUG] Cleared CLAUDE_CONFIG_DIR, SDK will use ~/.claude');
+}
 
 /**
  * 读取 Codemoss 配置文件
@@ -192,6 +242,17 @@ export function hasCliSessionAuth() {
 export function setupApiKey() {
   const { settings, source: configSource } = loadClaudeSettings();
 
+  // 如果使用供应商配置，设置 CLAUDE_CONFIG_DIR 让 SDK 读取我们的配置
+  if (configSource.startsWith('provider:') && settings) {
+    const configDir = writeProviderConfigToTempDir(settings);
+    setClaudeConfigDir(configDir);
+    console.log('[DEBUG] Using provider config via CLAUDE_CONFIG_DIR');
+  } else {
+    // 使用本地 ~/.claude/settings.json，清除 CLAUDE_CONFIG_DIR
+    clearClaudeConfigDir();
+    console.log('[DEBUG] Using local ~/.claude/settings.json');
+  }
+
   let apiKey;
   let baseUrl;
   let authType = 'api_key';
@@ -273,6 +334,19 @@ export function setupApiKey() {
   }
 
   console.log('[DEBUG] Auth type:', authType);
+
+  // 输出配置汇总日志
+  console.log('');
+  console.log('╔════════════════════════════════════════════════════════════╗');
+  console.log('║              Claude API Configuration Summary              ║');
+  console.log('╠════════════════════════════════════════════════════════════╣');
+  console.log(`║ Config Source : ${configSource.padEnd(42)}║`);
+  console.log(`║ Auth Type     : ${authType.padEnd(42)}║`);
+  console.log(`║ API Key Source: ${apiKeySource.substring(0, 42).padEnd(42)}║`);
+  console.log(`║ Base URL      : ${(baseUrl || 'https://api.anthropic.com (default)').substring(0, 42).padEnd(42)}║`);
+  console.log(`║ Base URL Src  : ${baseUrlSource.padEnd(42)}║`);
+  console.log('╚════════════════════════════════════════════════════════════╝');
+  console.log('');
 
   return { apiKey, baseUrl, authType, apiKeySource, baseUrlSource };
 }

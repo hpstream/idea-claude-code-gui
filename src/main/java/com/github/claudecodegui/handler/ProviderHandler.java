@@ -253,21 +253,12 @@ public class ProviderHandler extends BaseMessageHandler {
 
             context.getSettingsService().updateClaudeProvider(id, updates);
 
-            boolean syncedActiveProvider = false;
-            JsonObject activeProvider = context.getSettingsService().getActiveClaudeProvider();
-            if (activeProvider != null &&
-                activeProvider.has("id") &&
-                id.equals(activeProvider.get("id").getAsString())) {
-                context.getSettingsService().applyProviderToClaudeSettings(activeProvider);
-                syncedActiveProvider = true;
-            }
+            // 不再同步到 ~/.claude/settings.json，ai-bridge 会直接从 ~/.codemoss/config.json 读取
 
-            final boolean finalSynced = syncedActiveProvider;
             ApplicationManager.getApplication().invokeLater(() -> {
                 handleGetProviders(); // 刷新列表
-                if (finalSynced) {
-                    handleGetActiveProvider(); // 刷新当前激活的供应商配置
-                }
+                handleGetCurrentClaudeConfig(); // 刷新当前配置显示
+                handleGetActiveProvider(); // 刷新当前激活的供应商配置
             });
         } catch (Exception e) {
             LOG.error("[ProviderHandler] Failed to update provider: " + e.getMessage(), e);
@@ -344,11 +335,22 @@ public class ProviderHandler extends BaseMessageHandler {
             }
 
             context.getSettingsService().switchClaudeProvider(id);
-            context.getSettingsService().applyActiveProviderToClaudeSettings();
+            // 不再同步到 ~/.claude/settings.json，ai-bridge 会直接从 ~/.codemoss/config.json 读取
+            // context.getSettingsService().applyActiveProviderToClaudeSettings();
 
-            // 提示同步到独立配置文件
+            // 重启会话以使用新的代理商配置
+            if (context.getSession() != null) {
+                context.getSession().restart().thenRun(() -> {
+                    LOG.info("[ProviderHandler] Session restarted after provider switch");
+                }).exceptionally(ex -> {
+                    LOG.warn("[ProviderHandler] Failed to restart session: " + ex.getMessage());
+                    return null;
+                });
+            }
+
+            // 提示切换成功
             String successMsg = com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchSuccess")
-                + "\n\n已自动同步到 ~/.codemoss/claude-settings.json，下一次提问将使用新的配置。";
+                + "\n\n配置已保存，会话已重启以使用新的代理商配置。";
 
             ApplicationManager.getApplication().invokeLater(() -> {
                 callJavaScript("window.showSwitchSuccess", escapeJs(successMsg));

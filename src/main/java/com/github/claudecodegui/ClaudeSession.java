@@ -453,6 +453,10 @@ public class ClaudeSession {
         List<Attachment> attachments,
         JsonObject openedFilesJson
     ) {
+        // 打印配置信息日志
+        // Print config info log
+        logCurrentConfig();
+
         // 获取智能体提示词
         // Get agent prompt
         // 解释：看看用户选了什么智能体角色
@@ -529,6 +533,115 @@ public class ClaudeSession {
             agentPrompt,
             handler
         ).thenApply(result -> null);
+    }
+
+    /**
+     * 打印当前配置信息
+     * 英文：Log current config info
+     * 解释：在发送消息前打印当前使用的配置来源
+     */
+    private void logCurrentConfig() {
+        try {
+            CodemossSettingsService settingsService = new CodemossSettingsService();
+
+            LOG.info("╔════════════════════════════════════════════════════════════╗");
+            LOG.info("║              Current Config Info (Java Layer)              ║");
+            LOG.info("╠════════════════════════════════════════════════════════════╣");
+
+            // 检查是否使用本地设置
+            boolean useLocal = settingsService.getUseLocalClaudeSettings();
+            LOG.info("║ Use Local Settings: " + useLocal);
+
+            // 获取当前激活的供应商
+            JsonObject activeProvider = settingsService.getActiveClaudeProvider();
+            if (activeProvider != null) {
+                String providerName = activeProvider.has("name") ?
+                    activeProvider.get("name").getAsString() : "Unknown";
+                String providerId = activeProvider.has("id") ?
+                    activeProvider.get("id").getAsString() : "Unknown";
+                LOG.info("║ Active Provider: " + providerName + " (id: " + providerId + ")");
+
+                // 打印 settingsConfig 中的关键信息
+                if (activeProvider.has("settingsConfig")) {
+                    JsonObject settings = activeProvider.getAsJsonObject("settingsConfig");
+                    if (settings.has("env")) {
+                        JsonObject env = settings.getAsJsonObject("env");
+                        String baseUrl = env.has("ANTHROPIC_BASE_URL") ?
+                            env.get("ANTHROPIC_BASE_URL").getAsString() : "default";
+                        LOG.info("║ Base URL: " + baseUrl);
+
+                        // 打印 AUTH_TOKEN（脱敏）
+                        if (env.has("ANTHROPIC_AUTH_TOKEN") && !env.get("ANTHROPIC_AUTH_TOKEN").isJsonNull()) {
+                            String token = env.get("ANTHROPIC_AUTH_TOKEN").getAsString();
+                            LOG.info("║ AUTH_TOKEN: " + maskToken(token));
+                        } else {
+                            LOG.info("║ AUTH_TOKEN: (not set)");
+                        }
+
+                        // 打印 API_KEY（脱敏）
+                        if (env.has("ANTHROPIC_API_KEY") && !env.get("ANTHROPIC_API_KEY").isJsonNull()) {
+                            String apiKey = env.get("ANTHROPIC_API_KEY").getAsString();
+                            LOG.info("║ API_KEY: " + maskToken(apiKey));
+                        } else {
+                            LOG.info("║ API_KEY: (not set)");
+                        }
+                    }
+                }
+            } else {
+                LOG.info("║ Active Provider: None (using ~/.claude/settings.json)");
+                // 读取本地 ~/.claude/settings.json 的配置
+                try {
+                    String homePath = System.getProperty("user.home");
+                    java.io.File settingsFile = new java.io.File(homePath, ".claude/settings.json");
+                    if (settingsFile.exists()) {
+                        String content = new String(java.nio.file.Files.readAllBytes(settingsFile.toPath()));
+                        JsonObject localSettings = gson.fromJson(content, JsonObject.class);
+                        if (localSettings.has("env")) {
+                            JsonObject env = localSettings.getAsJsonObject("env");
+                            String baseUrl = env.has("ANTHROPIC_BASE_URL") ?
+                                env.get("ANTHROPIC_BASE_URL").getAsString() : "default";
+                            LOG.info("║ Base URL: " + baseUrl);
+
+                            if (env.has("ANTHROPIC_AUTH_TOKEN") && !env.get("ANTHROPIC_AUTH_TOKEN").isJsonNull()) {
+                                String token = env.get("ANTHROPIC_AUTH_TOKEN").getAsString();
+                                LOG.info("║ AUTH_TOKEN: " + maskToken(token));
+                            } else {
+                                LOG.info("║ AUTH_TOKEN: (not set)");
+                            }
+
+                            if (env.has("ANTHROPIC_API_KEY") && !env.get("ANTHROPIC_API_KEY").isJsonNull()) {
+                                String apiKey = env.get("ANTHROPIC_API_KEY").getAsString();
+                                LOG.info("║ API_KEY: " + maskToken(apiKey));
+                            } else {
+                                LOG.info("║ API_KEY: (not set)");
+                            }
+                        }
+                    } else {
+                        LOG.info("║ ~/.claude/settings.json not found");
+                    }
+                } catch (Exception e) {
+                    LOG.warn("║ Failed to read local settings: " + e.getMessage());
+                }
+            }
+
+            LOG.info("║ Provider: " + state.getProvider());
+            LOG.info("║ Model: " + state.getModel());
+            LOG.info("║ CWD: " + state.getCwd());
+            LOG.info("╚════════════════════════════════════════════════════════════╝");
+
+        } catch (Exception e) {
+            LOG.warn("[Config] Failed to log config: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 返回 token（不脱敏）
+     */
+    private String maskToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return "(empty)";
+        }
+        return token;
     }
 
     /**

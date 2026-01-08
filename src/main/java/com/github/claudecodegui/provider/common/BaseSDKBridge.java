@@ -271,6 +271,12 @@ public abstract class BaseSDKBridge {
                                 lastNodeError[0] = line;
                             }
 
+                            // Capture Node.js debug logs (including config info)
+                            if (line.startsWith("[DEBUG]") || line.startsWith("[INFO]")
+                                    || line.startsWith("╔") || line.startsWith("║") || line.startsWith("╠") || line.startsWith("╚")) {
+                                LOG.info("[Node.js] " + line);
+                            }
+
                             // Delegate to subclass for provider-specific processing
                             processOutputLine(line, callback, result, assistantContent, hadSendError, lastNodeError);
                         }

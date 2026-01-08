@@ -238,31 +238,59 @@ public class CodemossSettingsService {
     // ==================== Claude Settings 管理 ====================
 
     public JsonObject getCurrentClaudeConfig() throws IOException {
-        JsonObject currentConfig = claudeSettingsManager.getCurrentClaudeConfig();
+        // 根据 useLocalClaudeSettings 决定返回什么配置
+        boolean useLocal = getUseLocalClaudeSettings();
 
-        // 如果有 codemossProviderId,尝试从 codemoss 配置中获取供应商名称
-        if (currentConfig.has("providerId")) {
-            String providerId = currentConfig.get("providerId").getAsString();
-            try {
-                JsonObject config = readConfig();
-                if (config.has("claude")) {
-                    JsonObject claude = config.getAsJsonObject("claude");
-                    if (claude.has("providers")) {
-                        JsonObject providers = claude.getAsJsonObject("providers");
-                        if (providers.has(providerId)) {
-                            JsonObject provider = providers.getAsJsonObject(providerId);
-                            if (provider.has("name")) {
-                                currentConfig.addProperty("providerName", provider.get("name").getAsString());
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // 忽略错误,供应商名称是可选的
-            }
+        if (useLocal) {
+            // 使用本地 ~/.claude/settings.json
+            return claudeSettingsManager.getCurrentClaudeConfig();
         }
 
-        return currentConfig;
+        // 使用供应商配置
+        JsonObject activeProvider = getActiveClaudeProvider();
+        if (activeProvider != null && activeProvider.has("settingsConfig")) {
+            JsonObject settingsConfig = activeProvider.getAsJsonObject("settingsConfig");
+            JsonObject result = new JsonObject();
+
+            // 提取 env 中的关键配置
+            if (settingsConfig.has("env")) {
+                JsonObject env = settingsConfig.getAsJsonObject("env");
+
+                // 获取 API Key
+                String apiKey = "";
+                String authType = "none";
+                if (env.has("ANTHROPIC_AUTH_TOKEN") && !env.get("ANTHROPIC_AUTH_TOKEN").isJsonNull()) {
+                    apiKey = env.get("ANTHROPIC_AUTH_TOKEN").getAsString();
+                    authType = "auth_token";
+                } else if (env.has("ANTHROPIC_API_KEY") && !env.get("ANTHROPIC_API_KEY").isJsonNull()) {
+                    apiKey = env.get("ANTHROPIC_API_KEY").getAsString();
+                    authType = "api_key";
+                }
+                result.addProperty("apiKey", apiKey);
+                result.addProperty("authType", authType);
+
+                // 获取 Base URL
+                String baseUrl = env.has("ANTHROPIC_BASE_URL") ?
+                    env.get("ANTHROPIC_BASE_URL").getAsString() : "";
+                result.addProperty("baseUrl", baseUrl);
+            }
+
+            // 添加供应商信息
+            if (activeProvider.has("id")) {
+                result.addProperty("providerId", activeProvider.get("id").getAsString());
+            }
+            if (activeProvider.has("name")) {
+                result.addProperty("providerName", activeProvider.get("name").getAsString());
+            }
+
+            result.addProperty("source", "provider");
+            return result;
+        }
+
+        // 没有激活的供应商，回退到本地配置
+        JsonObject localConfig = claudeSettingsManager.getCurrentClaudeConfig();
+        localConfig.addProperty("source", "local");
+        return localConfig;
     }
 
     public Boolean getAlwaysThinkingEnabledFromClaudeSettings() throws IOException {
@@ -335,6 +363,45 @@ public class CodemossSettingsService {
 
     public void switchClaudeProvider(String id) throws IOException {
         providerManager.switchClaudeProvider(id);
+    }
+
+    /**
+     * 获取是否使用本地 ~/.claude/settings.json
+     */
+    public boolean getUseLocalClaudeSettings() throws IOException {
+        JsonObject config = readConfig();
+        if (config.has("claude")) {
+            JsonObject claude = config.getAsJsonObject("claude");
+            if (claude.has("useLocalClaudeSettings")) {
+                return claude.get("useLocalClaudeSettings").getAsBoolean();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 设置是否使用本地 ~/.claude/settings.json
+     */
+    public void setUseLocalClaudeSettings(boolean useLocal) throws IOException {
+        JsonObject config = readConfig();
+        if (!config.has("claude")) {
+            config.add("claude", new JsonObject());
+        }
+        JsonObject claude = config.getAsJsonObject("claude");
+        claude.addProperty("useLocalClaudeSettings", useLocal);
+        writeConfig(config);
+    }
+
+    /**
+     * 清除当前激活的 Claude 供应商
+     */
+    public void clearActiveClaudeProvider() throws IOException {
+        JsonObject config = readConfig();
+        if (config.has("claude")) {
+            JsonObject claude = config.getAsJsonObject("claude");
+            claude.addProperty("current", "");
+            writeConfig(config);
+        }
     }
 
     public List<JsonObject> parseProvidersFromCcSwitchDb(String dbPath) throws IOException {
