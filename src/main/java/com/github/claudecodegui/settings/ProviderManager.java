@@ -110,6 +110,23 @@ public class ProviderManager {
     }
 
     /**
+     * 清除当前激活的供应商
+     */
+    public void clearActiveClaudeProvider() throws IOException {
+        JsonObject config = configReader.apply(null);
+
+        if (!config.has("claude")) {
+            return;
+        }
+
+        JsonObject claude = config.getAsJsonObject("claude");
+        claude.addProperty("current", "");
+        configWriter.accept(config);
+
+        LOG.info("[ProviderManager] Cleared active provider");
+    }
+
+    /**
      * 添加供应商
      */
     public void addClaudeProvider(JsonObject provider) throws IOException {

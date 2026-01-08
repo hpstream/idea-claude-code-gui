@@ -36,6 +36,7 @@ public class ProviderHandler extends BaseMessageHandler {
         "update_provider",
         "delete_provider",
         "switch_provider",
+        "clear_active_provider",
         "get_active_provider",
         "preview_cc_switch_import",
         "open_file_chooser_for_cc_switch",
@@ -86,6 +87,9 @@ public class ProviderHandler extends BaseMessageHandler {
                 return true;
             case "switch_provider":
                 handleSwitchProvider(content);
+                return true;
+            case "clear_active_provider":
+                handleClearActiveProvider();
                 return true;
             case "get_active_provider":
                 handleGetActiveProvider();
@@ -333,20 +337,46 @@ public class ProviderHandler extends BaseMessageHandler {
             JsonObject data = gson.fromJson(content, JsonObject.class);
             String id = data.get("id").getAsString();
 
+            // 切换供应商时，禁用本地设置（互斥）
+            if (context.getSettingsService().getUseLocalClaudeSettings()) {
+                context.getSettingsService().setUseLocalClaudeSettings(false);
+                LOG.info("[ProviderHandler] Disabled local settings due to provider switch");
+            }
+
             context.getSettingsService().switchClaudeProvider(id);
             context.getSettingsService().applyActiveProviderToClaudeSettings();
 
+            // 提示同步到独立配置文件
+            String successMsg = com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchSuccess")
+                + "\n\n已自动同步到 ~/.codemoss/claude-settings.json，下一次提问将使用新的配置。";
+
             ApplicationManager.getApplication().invokeLater(() -> {
-                callJavaScript("window.showSwitchSuccess", escapeJs(com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchSuccess") + "\n\n已自动同步到 ~/.claude/settings.json，下一次提问将使用新的配置。"));
-                handleGetProviders(); // 刷新供应商列表
-                handleGetCurrentClaudeConfig(); // 刷新 Claude CLI 配置显示
-                handleGetActiveProvider(); // 刷新当前激活的供应商配置
+                callJavaScript("window.showSwitchSuccess", escapeJs(successMsg));
+                handleGetProviders();
+                handleGetCurrentClaudeConfig();
+                handleGetActiveProvider();
             });
         } catch (Exception e) {
             LOG.error("[ProviderHandler] Failed to switch provider: " + e.getMessage(), e);
             ApplicationManager.getApplication().invokeLater(() -> {
                 callJavaScript("window.showError", escapeJs(com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchFailed") + ": " + e.getMessage()));
             });
+        }
+    }
+
+    /**
+     * 清除当前激活的供应商（用于启用本地设置时）
+     */
+    private void handleClearActiveProvider() {
+        try {
+            context.getSettingsService().clearActiveClaudeProvider();
+            LOG.info("[ProviderHandler] Cleared active provider");
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                handleGetProviders();
+            });
+        } catch (Exception e) {
+            LOG.error("[ProviderHandler] Failed to clear active provider: " + e.getMessage(), e);
         }
     }
 

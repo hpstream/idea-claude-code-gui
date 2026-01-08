@@ -9,15 +9,78 @@ import { homedir, platform } from 'os';
 import { execSync } from 'child_process';
 
 /**
+ * 读取 Codemoss 配置文件
+ * @returns {Object|null} codemoss 配置对象
+ */
+export function loadCodemossConfig() {
+  try {
+    const configPath = join(homedir(), '.codemoss', 'config.json');
+    if (!existsSync(configPath)) {
+      return null;
+    }
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    return config;
+  } catch (error) {
+    console.log('[DEBUG] Failed to load codemoss config:', error.message);
+    return null;
+  }
+}
+
+/**
+ * 获取当前激活供应商的配置
+ * @returns {Object|null} 供应商的 settingsConfig
+ */
+export function getActiveProviderSettings() {
+  const config = loadCodemossConfig();
+  if (!config?.claude) {
+    return null;
+  }
+
+  const { claude } = config;
+
+  // 检查是否使用本地 settings.json
+  if (claude.useLocalClaudeSettings === true) {
+    console.log('[DEBUG] useLocalClaudeSettings is true, skipping provider config');
+    return null;
+  }
+
+  // 获取当前激活的供应商
+  const currentId = claude.current;
+  const providers = claude.providers;
+
+  if (!currentId || !providers || !providers[currentId]) {
+    return null;
+  }
+
+  const activeProvider = providers[currentId];
+  console.log('[DEBUG] Using active provider:', activeProvider.name || currentId);
+
+  return activeProvider.settingsConfig || null;
+}
+
+/**
  * 读取 Claude Code 配置
+ * 优先级：供应商配置 > ~/.claude/settings.json
+ * @returns {Object} { settings, source } - settings 是配置对象，source 是配置来源
  */
 export function loadClaudeSettings() {
+  // 1. 优先从供应商配置读取
+  const providerSettings = getActiveProviderSettings();
+  if (providerSettings) {
+    const config = loadCodemossConfig();
+    const providerName = config?.claude?.providers?.[config?.claude?.current]?.name || 'provider';
+    console.log('[DEBUG] Loading config from active provider:', providerName);
+    return { settings: providerSettings, source: `provider: ${providerName}` };
+  }
+
+  // 2. 回退到 ~/.claude/settings.json
   try {
+    console.log('[DEBUG] Loading config from ~/.claude/settings.json');
     const settingsPath = join(homedir(), '.claude', 'settings.json');
     const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));
-    return settings;
+    return { settings, source: '~/.claude/settings.json' };
   } catch (error) {
-    return null;
+    return { settings: null, source: 'none' };
   }
 }
 
@@ -127,37 +190,33 @@ export function hasCliSessionAuth() {
  * @returns {Object} 包含 apiKey, baseUrl, authType 及其来源
  */
 export function setupApiKey() {
-  const settings = loadClaudeSettings();
+  const { settings, source: configSource } = loadClaudeSettings();
 
   let apiKey;
   let baseUrl;
-  let authType = 'api_key';  // 默认使用 api_key（x-api-key header）
+  let authType = 'api_key';
   let apiKeySource = 'default';
   let baseUrlSource = 'default';
 
-  // 🔥 配置优先级：只从 settings.json 读取，忽略系统环境变量
-  // 这样确保配置来源唯一，避免 shell 环境变量干扰
-  console.log('[DEBUG] Loading configuration from settings.json only (ignoring shell environment variables)...');
+  console.log('[DEBUG] Config source:', configSource);
 
-  // 优先使用 ANTHROPIC_AUTH_TOKEN（Bearer 认证），回退到 ANTHROPIC_API_KEY（x-api-key 认证）
-  // 这样可以兼容 Claude Code CLI 的两种认证方式
   if (settings?.env?.ANTHROPIC_AUTH_TOKEN) {
     apiKey = settings.env.ANTHROPIC_AUTH_TOKEN;
-    authType = 'auth_token';  // Bearer 认证
-    apiKeySource = 'settings.json (ANTHROPIC_AUTH_TOKEN)';
+    authType = 'auth_token';
+    apiKeySource = `${configSource}: ANTHROPIC_AUTH_TOKEN`;
   } else if (settings?.env?.ANTHROPIC_API_KEY) {
     apiKey = settings.env.ANTHROPIC_API_KEY;
-    authType = 'api_key';  // x-api-key 认证
-    apiKeySource = 'settings.json (ANTHROPIC_API_KEY)';
+    authType = 'api_key';
+    apiKeySource = `${configSource}: ANTHROPIC_API_KEY`;
   } else if (settings?.env?.CLAUDE_CODE_USE_BEDROCK === '1' || settings?.env?.CLAUDE_CODE_USE_BEDROCK === 1 || settings?.env?.CLAUDE_CODE_USE_BEDROCK === 'true' || settings?.env?.CLAUDE_CODE_USE_BEDROCK === true) {
     apiKey = settings?.env?.CLAUDE_CODE_USE_BEDROCK;
-    authType = 'aws_bedrock';  // aws_bedrock 认证
-    apiKeySource = 'settings.json (AWS_BEDROCK)';
+    authType = 'aws_bedrock';
+    apiKeySource = `${configSource}: AWS_BEDROCK`;
   }
 
   if (settings?.env?.ANTHROPIC_BASE_URL) {
     baseUrl = settings.env.ANTHROPIC_BASE_URL;
-    baseUrlSource = 'settings.json';
+    baseUrlSource = configSource;
   }
 
   // 如果没有配置 API Key，检查是否存在 CLI 会话认证

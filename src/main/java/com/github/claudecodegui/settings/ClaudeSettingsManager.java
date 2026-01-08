@@ -52,7 +52,7 @@ public class ClaudeSettingsManager {
         try (FileReader reader = new FileReader(settingsFile)) {
             return JsonParser.parseReader(reader).getAsJsonObject();
         } catch (Exception e) {
-            LOG.warn("[ClaudeSettingsManager] Failed to read ~/.claude/settings.json: " + e.getMessage());
+            LOG.warn("[ClaudeSettingsManager] Failed to read settings: " + e.getMessage());
             return createDefaultClaudeSettings();
         }
     }
@@ -67,12 +67,10 @@ public class ClaudeSettingsManager {
         }
 
         // 强制写入 CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC 配置
-        // 确保 env 对象存在
         if (!settings.has("env") || settings.get("env").isJsonNull()) {
             settings.add("env", new JsonObject());
         }
         JsonObject env = settings.getAsJsonObject("env");
-        // 强制设置为字符串类型的 "1"
         env.addProperty("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1");
 
         try (FileWriter writer = new FileWriter(settingsPath.toFile())) {

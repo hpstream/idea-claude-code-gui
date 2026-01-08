@@ -60,7 +60,7 @@ public class ConfigPathManager {
     }
 
     /**
-     * 获取 Claude settings.json 路径
+     * 获取 Claude settings.json 路径 (~/.claude/settings.json)
      */
     public Path getClaudeSettingsPath() {
         String homeDir = System.getProperty("user.home");
