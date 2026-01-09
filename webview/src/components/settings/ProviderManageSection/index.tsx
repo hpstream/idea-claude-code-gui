@@ -14,6 +14,8 @@ interface ProviderManageSectionProps {
   onDeleteProvider: (provider: ProviderConfig) => void;
   onSwitchProvider: (id: string) => void;
   addToast: (message: string, type: 'info' | 'success' | 'warning' | 'error') => void;
+  useLocalClaudeSettings: boolean;
+  onToggleUseLocalClaudeSettings: (checked: boolean) => void;
 }
 
 const ProviderManageSection = ({
@@ -26,6 +28,8 @@ const ProviderManageSection = ({
   onDeleteProvider,
   onSwitchProvider,
   addToast,
+  useLocalClaudeSettings,
+  onToggleUseLocalClaudeSettings,
 }: ProviderManageSectionProps) => {
   const { t } = useTranslation();
 
@@ -43,6 +47,25 @@ const ProviderManageSection = ({
           onSwitchProvider={onSwitchProvider}
           addToast={addToast}
         />
+      </div>
+
+      {/* 使用本地 Claude Settings 开关 */}
+      <div className={styles.settingsToggle}>
+        <div className={styles.toggleRow}>
+          <span className={styles.toggleText}>
+            {t('settings.useLocalClaudeSettings')}
+          </span>
+          <button
+            className={`${styles.toggleBadge} ${useLocalClaudeSettings ? styles.active : ''}`}
+            onClick={() => onToggleUseLocalClaudeSettings(!useLocalClaudeSettings)}
+          >
+            <span className={`codicon ${useLocalClaudeSettings ? 'codicon-check' : 'codicon-close'}`} />
+            {useLocalClaudeSettings ? t('settings.enabled') : t('settings.disabled')}
+          </button>
+        </div>
+        <p className={styles.toggleDesc}>
+          {t('settings.useLocalClaudeSettingsDesc')}
+        </p>
       </div>
 
       {loading && (

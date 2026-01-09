@@ -36,6 +36,7 @@ public class ProviderHandler extends BaseMessageHandler {
         "update_provider",
         "delete_provider",
         "switch_provider",
+        "clear_active_provider",
         "get_active_provider",
         "preview_cc_switch_import",
         "open_file_chooser_for_cc_switch",
@@ -86,6 +87,9 @@ public class ProviderHandler extends BaseMessageHandler {
                 return true;
             case "switch_provider":
                 handleSwitchProvider(content);
+                return true;
+            case "clear_active_provider":
+                handleClearActiveProvider();
                 return true;
             case "get_active_provider":
                 handleGetActiveProvider();
@@ -249,21 +253,12 @@ public class ProviderHandler extends BaseMessageHandler {
 
             context.getSettingsService().updateClaudeProvider(id, updates);
 
-            boolean syncedActiveProvider = false;
-            JsonObject activeProvider = context.getSettingsService().getActiveClaudeProvider();
-            if (activeProvider != null &&
-                activeProvider.has("id") &&
-                id.equals(activeProvider.get("id").getAsString())) {
-                context.getSettingsService().applyProviderToClaudeSettings(activeProvider);
-                syncedActiveProvider = true;
-            }
+            // 不再同步到 ~/.claude/settings.json，ai-bridge 会直接从 ~/.codemoss/config.json 读取
 
-            final boolean finalSynced = syncedActiveProvider;
             ApplicationManager.getApplication().invokeLater(() -> {
                 handleGetProviders(); // 刷新列表
-                if (finalSynced) {
-                    handleGetActiveProvider(); // 刷新当前激活的供应商配置
-                }
+                handleGetCurrentClaudeConfig(); // 刷新当前配置显示
+                handleGetActiveProvider(); // 刷新当前激活的供应商配置
             });
         } catch (Exception e) {
             LOG.error("[ProviderHandler] Failed to update provider: " + e.getMessage(), e);
@@ -333,11 +328,32 @@ public class ProviderHandler extends BaseMessageHandler {
             JsonObject data = gson.fromJson(content, JsonObject.class);
             String id = data.get("id").getAsString();
 
+            // 切换供应商时，禁用本地设置（互斥）
+            if (context.getSettingsService().getUseLocalClaudeSettings()) {
+                context.getSettingsService().setUseLocalClaudeSettings(false);
+                LOG.info("[ProviderHandler] Disabled local settings due to provider switch");
+            }
+
             context.getSettingsService().switchClaudeProvider(id);
-            context.getSettingsService().applyActiveProviderToClaudeSettings();
+            // 不需要同步到 ~/.claude/settings.json，因为 SDK 现在使用环境变量
+            // ai-bridge 会从 ~/.codemoss/config.json 读取配置并设置环境变量
+
+            // 重启会话以使用新的代理商配置
+            if (context.getSession() != null) {
+                context.getSession().restart().thenRun(() -> {
+                    LOG.info("[ProviderHandler] Session restarted after provider switch");
+                }).exceptionally(ex -> {
+                    LOG.warn("[ProviderHandler] Failed to restart session: " + ex.getMessage());
+                    return null;
+                });
+            }
+
+            // 提示切换成功
+            String successMsg = com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchSuccess")
+                + "\n\n配置已保存，会话已重启以使用新的代理商配置。";
 
             ApplicationManager.getApplication().invokeLater(() -> {
-                callJavaScript("window.showSwitchSuccess", escapeJs(com.github.claudecodegui.ClaudeCodeGuiBundle.message("toast.providerSwitchSuccess") + "\n\n已自动同步到 ~/.claude/settings.json，下一次提问将使用新的配置。"));
+                callJavaScript("window.showSwitchSuccess", escapeJs(successMsg));
                 handleGetProviders(); // 刷新供应商列表
                 handleGetCurrentClaudeConfig(); // 刷新 Claude CLI 配置显示
                 handleGetActiveProvider(); // 刷新当前激活的供应商配置
@@ -771,6 +787,22 @@ public class ProviderHandler extends BaseMessageHandler {
             });
         } catch (Exception e) {
             LOG.error("[ProviderHandler] Failed to get active Codex provider: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 清除当前激活的 Claude 供应商
+     */
+    private void handleClearActiveProvider() {
+        try {
+            context.getSettingsService().clearActiveClaudeProvider();
+            LOG.info("[ProviderHandler] Cleared active provider");
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                handleGetProviders();
+            });
+        } catch (Exception e) {
+            LOG.error("[ProviderHandler] Failed to clear active provider: " + e.getMessage(), e);
         }
     }
 }

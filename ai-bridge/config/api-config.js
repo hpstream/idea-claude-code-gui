@@ -9,12 +9,105 @@ import { homedir, platform } from 'os';
 import { execSync } from 'child_process';
 
 /**
+ * 安全地格式化 API key 用于日志显示
+ * @param {string} apiKey - 完整的 API key
+ * @returns {string} 格式化后的 API key（只显示部分内容）
+ */
+function formatApiKeyForLog(apiKey) {
+  if (!apiKey || typeof apiKey !== 'string') {
+    return 'N/A';
+  }
+
+  const length = apiKey.length;
+  if (length <= 14) {
+    // 如果 key 太短，只显示前3位和后3位
+    return `${apiKey.substring(0, 3)}...${apiKey.substring(length - 3)}`;
+  }
+
+  // 显示前10位和后4位，中间用星号替代
+  const prefix = apiKey.substring(0, 10);
+  const suffix = apiKey.substring(length - 4);
+  return `${prefix}...${suffix}`;
+}
+
+/**
+ * 读取 Codemoss 配置
+ */
+function loadCodemossConfig() {
+  try {
+    const configPath = join(homedir(), '.codemoss', 'config.json');
+    if (!existsSync(configPath)) {
+      return null;
+    }
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    return config;
+  } catch (error) {
+    console.log('[DEBUG] Failed to load codemoss config:', error.message);
+    return null;
+  }
+}
+
+/**
+ * 从 Codemoss 配置中获取当前激活的供应商配置
+ */
+function getActiveProviderSettings() {
+  try {
+    const config = loadCodemossConfig();
+    if (!config || !config.claude) {
+      return null;
+    }
+
+    // 如果启用了本地设置，返回 null（回退到 ~/.claude/settings.json）
+    if (config.claude.useLocalClaudeSettings === true) {
+      console.log('[DEBUG] Local Claude settings enabled, using ~/.claude/settings.json');
+      return null;
+    }
+
+    // 获取当前激活的供应商 ID
+    const currentProviderId = config.claude.current;
+    if (!currentProviderId) {
+      console.log('[DEBUG] No active provider in codemoss config');
+      return null;
+    }
+
+    // 获取供应商配置
+    const providers = config.claude.providers;
+    if (!providers || !providers[currentProviderId]) {
+      console.log('[DEBUG] Active provider not found in codemoss config');
+      return null;
+    }
+
+    const provider = providers[currentProviderId];
+    const settingsConfig = provider.settingsConfig;
+
+    if (!settingsConfig) {
+      console.log('[DEBUG] No settings config in active provider');
+      return null;
+    }
+
+    console.log(`[DEBUG] Using provider "${provider.name}" (${currentProviderId}) from codemoss config`);
+    return settingsConfig;
+  } catch (error) {
+    console.log('[DEBUG] Failed to get active provider settings:', error.message);
+    return null;
+  }
+}
+
+/**
  * 读取 Claude Code 配置
  */
 export function loadClaudeSettings() {
   try {
+    // 优先从 codemoss 配置读取当前激活的供应商配置
+    const providerSettings = getActiveProviderSettings();
+    if (providerSettings) {
+      return providerSettings;
+    }
+
+    // 回退到 ~/.claude/settings.json
     const settingsPath = join(homedir(), '.claude', 'settings.json');
     const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));
+    console.log('[DEBUG] Using ~/.claude/settings.json');
     return settings;
   } catch (error) {
     return null;
@@ -214,6 +307,14 @@ export function setupApiKey() {
   }
 
   console.log('[DEBUG] Auth type:', authType);
+  console.log('='.repeat(80));
+  console.log('[INFO] 🔑 API Configuration:');
+  console.log(`[INFO]   Auth Type: ${authType}`);
+  console.log(`[INFO]   API Key: ${formatApiKeyForLog(apiKey)}`);
+  console.log(`[INFO]   Base URL: ${baseUrl || 'https://api.anthropic.com (default)'}`);
+  console.log(`[INFO]   Key Source: ${apiKeySource}`);
+  console.log(`[INFO]   URL Source: ${baseUrlSource}`);
+  console.log('='.repeat(80));
 
   return { apiKey, baseUrl, authType, apiKeySource, baseUrlSource };
 }

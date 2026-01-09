@@ -71,6 +71,9 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
   const [claudeConfig, setClaudeConfig] = useState<ClaudeConfig | null>(null);
   const [claudeConfigLoading, setClaudeConfigLoading] = useState(false);
 
+  // 是否使用本地 ~/.claude/settings.json
+  const [useLocalClaudeSettings, setUseLocalClaudeSettings] = useState(false);
+
   // 侧边栏响应式状态
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [manualCollapsed, setManualCollapsed] = useState<boolean | null>(null);
@@ -266,6 +269,11 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
       }
     };
 
+    // 使用本地 Claude Settings 配置回调
+    window.onUseLocalClaudeSettingsReceived = (value: string) => {
+      setUseLocalClaudeSettings(value === 'true');
+    };
+
     window.showError = (message: string) => {
       console.log('[SettingsView] window.showError called:', message);
       showAlert('error', t('toast.operationFailed'), message);
@@ -427,6 +435,8 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
     sendToJava('get_editor_font_config:');
     // 🔧 加载流式传输配置
     sendToJava('get_streaming_enabled:');
+    // 加载是否使用本地 Claude Settings 配置
+    sendToJava('get_use_local_claude_settings:');
 
     return () => {
       // 清理超时定时器
@@ -439,6 +449,7 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
       window.updateProviders = undefined;
       window.updateActiveProvider = undefined;
       window.updateCurrentClaudeConfig = undefined;
+      window.onUseLocalClaudeSettingsReceived = undefined;
       window.showError = undefined;
       window.showSwitchSuccess = undefined;
       window.updateNodePath = undefined;
@@ -577,6 +588,23 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
     setStreamingEnabled(enabled);
     const payload = { streamingEnabled: enabled };
     sendToJava(`set_streaming_enabled:${JSON.stringify(payload)}`);
+  };
+
+  const handleToggleUseLocalClaudeSettings = (checked: boolean) => {
+    setUseLocalClaudeSettings(checked);
+    sendToJava(`set_use_local_claude_settings:${JSON.stringify({ useLocal: checked })}`);
+
+    // 启用本地设置时，取消当前供应商（互斥）
+    if (checked) {
+      sendToJava('clear_active_provider:');
+      // 更新本地状态，取消所有供应商的激活状态
+      setProviders(prev => prev.map(p => ({ ...p, isActive: false })));
+    }
+
+    addToast(
+      checked ? t('toast.useLocalClaudeSettingsEnabled') : t('toast.useLocalClaudeSettingsDisabled'),
+      'success'
+    );
   };
 
   const handleEditProvider = (provider: ProviderConfig) => {
@@ -874,6 +902,8 @@ const SettingsView = ({ onClose, initialTab, currentProvider }: SettingsViewProp
               onDeleteProvider={handleDeleteProvider}
               onSwitchProvider={handleSwitchProvider}
               addToast={addToast}
+              useLocalClaudeSettings={useLocalClaudeSettings}
+              onToggleUseLocalClaudeSettings={handleToggleUseLocalClaudeSettings}
             />
           )}
 

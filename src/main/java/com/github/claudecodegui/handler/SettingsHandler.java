@@ -39,7 +39,9 @@ public class SettingsHandler extends BaseMessageHandler {
         "set_working_directory",
         "get_editor_font_config",
         "get_streaming_enabled",
-        "set_streaming_enabled"
+        "set_streaming_enabled",
+        "get_use_local_claude_settings",
+        "set_use_local_claude_settings"
     };
 
     private static final Map<String, Integer> MODEL_CONTEXT_LIMITS = new HashMap<>();
@@ -96,6 +98,12 @@ public class SettingsHandler extends BaseMessageHandler {
                 return true;
             case "set_streaming_enabled":
                 handleSetStreamingEnabled(content);
+                return true;
+            case "get_use_local_claude_settings":
+                handleGetUseLocalClaudeSettings();
+                return true;
+            case "set_use_local_claude_settings":
+                handleSetUseLocalClaudeSettings(content);
                 return true;
             default:
                 return false;
@@ -861,5 +869,62 @@ public class SettingsHandler extends BaseMessageHandler {
         // 如果没有容量后缀，尝试从预定义映射中查找
         // 先尝试完整匹配，如果不存在则使用默认值
         return MODEL_CONTEXT_LIMITS.getOrDefault(model, 200_000);
+    }
+
+    /**
+     * 获取是否使用本地 Claude Settings
+     */
+    private void handleGetUseLocalClaudeSettings() {
+        try {
+            boolean useLocal = context.getSettingsService().getUseLocalClaudeSettings();
+            ApplicationManager.getApplication().invokeLater(() -> {
+                callJavaScript("window.onUseLocalClaudeSettingsReceived", String.valueOf(useLocal));
+            });
+        } catch (Exception e) {
+            LOG.error("[SettingsHandler] Failed to get useLocalClaudeSettings: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 设置是否使用本地 Claude Settings
+     */
+    private void handleSetUseLocalClaudeSettings(String content) {
+        try {
+            JsonObject json = new Gson().fromJson(content, JsonObject.class);
+            boolean useLocal = json.get("useLocal").getAsBoolean();
+            context.getSettingsService().setUseLocalClaudeSettings(useLocal);
+
+            // 启用本地设置时，清除当前激活的供应商（互斥）
+            if (useLocal) {
+                context.getSettingsService().clearActiveClaudeProvider();
+                LOG.info("[SettingsHandler] Cleared active provider due to local settings enabled");
+            }
+
+            LOG.info("[SettingsHandler] Set useLocalClaudeSettings to: " + useLocal);
+
+            // 重启会话以使用新的配置
+            if (context.getSession() != null) {
+                context.getSession().restart().thenRun(() -> {
+                    LOG.info("[SettingsHandler] Session restarted after local settings toggle");
+                }).exceptionally(ex -> {
+                    LOG.warn("[SettingsHandler] Failed to restart session: " + ex.getMessage());
+                    return null;
+                });
+            }
+
+            // 重新获取配置并推送给前端，更新 UI 显示
+            ApplicationManager.getApplication().invokeLater(() -> {
+                try {
+                    JsonObject config = context.getSettingsService().getCurrentClaudeConfig();
+                    Gson gson = new Gson();
+                    String configJson = gson.toJson(config);
+                    callJavaScript("window.updateCurrentClaudeConfig", escapeJs(configJson));
+                } catch (Exception e) {
+                    LOG.error("[SettingsHandler] Failed to get current claude config after toggle: " + e.getMessage(), e);
+                }
+            });
+        } catch (Exception e) {
+            LOG.error("[SettingsHandler] Failed to set useLocalClaudeSettings: " + e.getMessage(), e);
+        }
     }
 }

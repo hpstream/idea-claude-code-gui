@@ -174,6 +174,11 @@ interface Window {
   updateCurrentClaudeConfig?: (json: string) => void;
 
   /**
+   * Use local Claude Settings received callback - 接收是否使用本地 Claude Settings 配置
+   */
+  onUseLocalClaudeSettingsReceived?: (value: string) => void;
+
+  /**
    * Show error message
    */
   showError?: (message: string) => void;

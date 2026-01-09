@@ -311,7 +311,8 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
 	        }]
 	      },
 	      // 不传递 pathToClaudeCodeExecutable，SDK 将自动使用内置 cli.js
-	      settingSources: ['user', 'project', 'local'],
+	      // 🔧 移除 settingSources 参数，让 SDK 使用环境变量（由 setupApiKey() 设置）
+	      // settingSources: ['user', 'project', 'local'],
 	      // 使用 Claude Code 预设系统提示，让 Claude 知道当前工作目录
 	      // 这是修复路径问题的关键：没有 systemPrompt 时 Claude 不知道 cwd
 	      // 如果有 openedFiles，通过 append 字段添加打开文件的上下文
@@ -897,7 +898,9 @@ export async function sendMessageWithAttachments(message, resumeSessionId = null
         }]
       },
       // 不传递 pathToClaudeCodeExecutable，SDK 将自动使用内置 cli.js
-      settingSources: ['user', 'project', 'local'],
+      // 🔧 移除 settingSources 参数，让 SDK 使用环境变量（由 setupApiKey() 设置）
+      // 这样就不需要同步配置到 ~/.claude/settings.json
+      // settingSources: ['user', 'project', 'local'],
       // 使用 Claude Code 预设系统提示，让 Claude 知道当前工作目录
       // 这是修复路径问题的关键：没有 systemPrompt 时 Claude 不知道 cwd
       // 如果有 openedFiles，通过 append 字段添加打开文件的上下文
@@ -1168,7 +1171,8 @@ export async function getSlashCommands(cwd = null) {
         }),
         // 明确启用默认工具集
         tools: { type: 'preset', preset: 'claude_code' },
-        settingSources: ['user', 'project', 'local'],
+        // 🔧 移除 settingSources 参数，让 SDK 使用环境变量
+        // settingSources: ['user', 'project', 'local'],
         // 捕获 SDK stderr 调试日志，帮助定位 CLI 初始化问题
         stderr: (data) => {
           if (data && data.trim()) {
@@ -1247,7 +1251,8 @@ export async function getMcpServerStatus(cwd = null) {
           message: 'Config loading only'
         }),
         tools: { type: 'preset', preset: 'claude_code' },
-        settingSources: ['user', 'project', 'local'],
+        // 🔧 移除 settingSources 参数，让 SDK 使用环境变量
+        // settingSources: ['user', 'project', 'local'],
         stderr: (data) => {
           if (data && data.trim()) {
             console.log(`[SDK-STDERR] ${data.trim()}`);
@@ -1331,7 +1336,8 @@ export async function rewindFiles(sessionId, userMessageId, cwd = null) {
           enableFileCheckpointing: true,
           maxTurns: 1,
           tools: { type: 'preset', preset: 'claude_code' },
-          settingSources: ['user', 'project', 'local'],
+          // 🔧 移除 settingSources 参数，让 SDK 使用环境变量
+          // settingSources: ['user', 'project', 'local'],
           additionalDirectories: Array.from(
             new Set(
               [workingDirectory, process.env.IDEA_PROJECT_PATH, process.env.PROJECT_PATH].filter(Boolean)

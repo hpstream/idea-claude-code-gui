@@ -130,6 +130,10 @@
     },
     "providers": "Provider Management",
     "providersDesc": "Manage Claude API provider configurations and switch between different API service providers",
+    "useLocalClaudeSettings": "Use local ~/.claude/settings.json",
+    "useLocalClaudeSettingsDesc": "When enabled, directly read/write ~/.claude/settings.json. When disabled, use separate config file",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
     "usage": "Usage Statistics",
     "usageDesc": "View your Token consumption, cost statistics and usage trend analysis",
     "mcp": "MCP Servers",
@@ -385,7 +389,9 @@
     "invalidJsonConfig": "Invalid JSON config format",
     "providerAdded": "Provider added",
     "providerUpdated": "Provider updated",
-    "providerDeleted": "Provider deleted"
+    "providerDeleted": "Provider deleted",
+    "useLocalClaudeSettingsEnabled": "Local Claude Settings enabled",
+    "useLocalClaudeSettingsDisabled": "Local Claude Settings disabled"
   },
   "config": {
     "clickToCopy": "Click to copy",
