@@ -418,12 +418,53 @@
 /* ============================================================
    输入区域
    ============================================================ */
+.input-resize-handle {
+  position: relative;
+  height: 4px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.input-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 100%;
+  height: 2px;
+  background: var(--input-border);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.input-resize-handle:hover::before {
+  opacity: 1;
+}
+
+.input-resize-handle:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.input-resize-handle.dragging {
+  background-color: rgba(0, 127, 212, 0.1);
+}
+
+.input-resize-handle.dragging::before {
+  opacity: 1;
+  background: var(--input-focus-border);
+}
+
 .input-editable-wrapper {
   position: relative;
   padding: 6px 8px;
-  min-height: 20px;
-  max-height: 240px;
+  min-height: 80px;
   overflow-y: auto;
+  transition: height 0.05s ease-out;
 }
 
 /* 代码片段标签容器 */

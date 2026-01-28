@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -116,9 +117,20 @@ export const ChatInputBox = forwardRef<ChatInputBoxHandle, ChatInputBoxProps>(
     // Input element refs and state
     const containerRef = useRef<HTMLDivElement>(null);
     const editableRef = useRef<HTMLDivElement>(null);
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const submittedOnEnterRef = useRef(false);
     const completionSelectedRef = useRef(false);
     const [hasContent, setHasContent] = useState(false);
+
+    // Resize handle state
+    const [isDragging, setIsDragging] = useState(false);
+    const [wrapperHeight, setWrapperHeight] = useState(240); // Default height
+    const dragStartYRef = useRef(0);
+    const dragStartHeightRef = useRef(0);
+
+    // Height constraints
+    const MIN_HEIGHT = 80;
+    const MAX_HEIGHT = 600;
 
     // Flag to track if we're updating from external value
     const isExternalUpdateRef = useRef(false);
@@ -668,6 +680,42 @@ export const ChatInputBox = forwardRef<ChatInputBoxHandle, ChatInputBoxProps>(
 
     useSpaceKeyListener({ editableRef, onKeyDown: handleKeyDownForTagRendering });
 
+    // Resize handle drag handlers
+    const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      dragStartYRef.current = e.clientY;
+      dragStartHeightRef.current = wrapperHeight;
+    }, [wrapperHeight]);
+
+    // Use effect to add/remove event listeners for dragging
+    useEffect(() => {
+      if (!isDragging) return;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const deltaY = dragStartYRef.current - e.clientY;
+        const newHeight = Math.max(
+          MIN_HEIGHT,
+          Math.min(MAX_HEIGHT, dragStartHeightRef.current + deltaY)
+        );
+        setWrapperHeight(newHeight);
+      };
+
+      const handleMouseUp = () => {
+        setIsDragging(false);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }, [isDragging]);
+
+
+
     return (
       <div className="chat-input-box" onClick={focusInput} ref={containerRef}>
         {/* SDK status loading or not installed warning bar */}
@@ -721,9 +769,17 @@ export const ChatInputBox = forwardRef<ChatInputBoxHandle, ChatInputBoxProps>(
           onToggleStatusPanel={onToggleStatusPanel}
         />
 
+        {/* Resize handle */}
+        <div
+          className={`input-resize-handle ${isDragging ? 'dragging' : ''}`}
+          onMouseDown={handleResizeMouseDown}
+        />
+
         {/* Input area */}
         <div
+          ref={wrapperRef}
           className="input-editable-wrapper"
+          style={{ height: `${wrapperHeight}px` }}
           onMouseOver={handleMouseOver}
           onMouseLeave={handleMouseLeave}
         >
