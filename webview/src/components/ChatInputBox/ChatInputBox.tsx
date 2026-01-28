@@ -124,7 +124,7 @@ export const ChatInputBox = forwardRef<ChatInputBoxHandle, ChatInputBoxProps>(
 
     // Resize handle state
     const [isDragging, setIsDragging] = useState(false);
-    const [wrapperHeight, setWrapperHeight] = useState(240); // Default height
+    const [wrapperHeight, setWrapperHeight] = useState(80); // Default height
     const dragStartYRef = useRef(0);
     const dragStartHeightRef = useRef(0);
 
