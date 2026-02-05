@@ -2457,7 +2457,8 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
                 int cacheReadTokens = lastUsage != null && lastUsage.has("cache_read_input_tokens") ? lastUsage.get("cache_read_input_tokens").getAsInt() : 0;
                 int outputTokens = lastUsage != null && lastUsage.has("output_tokens") ? lastUsage.get("output_tokens").getAsInt() : 0;
 
-                int usedTokens = inputTokens + cacheWriteTokens + cacheReadTokens + outputTokens;
+                // 上下文消耗：不包含缓存读取的 token（缓存读取不占用新的上下文窗口）
+                int usedTokens = inputTokens + cacheWriteTokens + outputTokens;
                 int maxTokens = SettingsHandler.getModelContextLimit(handlerContext.getCurrentModel());
                 int percentage = Math.min(100, maxTokens > 0 ? (int) ((usedTokens * 100.0) / maxTokens) : 0);
 
