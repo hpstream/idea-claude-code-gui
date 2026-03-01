@@ -7,15 +7,19 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -659,5 +663,33 @@ public class ProviderManager {
             return false;
         }
         return LOCAL_SETTINGS_PROVIDER_ID.equals(claude.get("current").getAsString());
+    }
+
+    /**
+     * Save local provider snapshot.
+     * @return snapshot timestamp
+     */
+    public String saveLocalProviderSnapshot() throws IOException {
+        // Read current settings.json
+        JsonObject settings = claudeSettingsManager.readClaudeSettings();
+
+        // Create snapshot object with timestamp
+        JsonObject snapshot = new JsonObject();
+        String timestamp = Instant.now().toString();
+        snapshot.addProperty("timestamp", timestamp);
+        snapshot.add("settings", settings.deepCopy()); // Deep copy to avoid reference
+
+        // Write to snapshot file
+        Path snapshotPath = pathManager.getLocalProviderSnapshotPath();
+        if (!Files.exists(snapshotPath.getParent())) {
+            Files.createDirectories(snapshotPath.getParent());
+        }
+
+        try (FileWriter writer = new FileWriter(snapshotPath.toFile())) {
+            gson.toJson(snapshot, writer);
+            LOG.info("[ProviderManager] Saved local provider snapshot at: " + timestamp);
+        }
+
+        return timestamp;
     }
 }
