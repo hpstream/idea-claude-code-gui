@@ -132,7 +132,17 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
     };
 
     window.showSwitchSuccess = (message: string) => {
-      d().showAlert('success', t('toast.switchSuccess'), message);
+      // Check if this is a local provider switch message (from backend)
+      // If so, use frontend translation to ensure correct language
+      const isLocalProviderSwitch = message.includes('local settings.json') ||
+                                     message.includes('本地 settings.json') ||
+                                     message.includes('ローカル settings.json');
+
+      const displayMessage = isLocalProviderSwitch
+        ? t('toast.localProviderSwitchSuccess')
+        : message;
+
+      d().showAlert('success', t('toast.switchSuccess'), displayMessage);
     };
 
     window.updateNodePath = (jsonStr: string) => {

@@ -282,6 +282,10 @@ export function useProviderManagement(options: UseProviderManagementOptions = {}
       setSnapshotLoading(false);
       if (response.success) {
         onSuccess?.(t('toast.snapshotRestored'));
+        // Auto-switch to local provider after successful restore
+        const localProviderId = '__local_settings_json__';
+        sendToJava(`switch_provider:${JSON.stringify({ id: localProviderId })}`);
+        setLoading(true);
       } else if (response.error) {
         onError?.(t('toast.snapshotRestoreFailed') + `: ${response.error}`);
       } else {

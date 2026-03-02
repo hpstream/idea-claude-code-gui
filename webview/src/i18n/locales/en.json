@@ -368,9 +368,9 @@
       "localProviderName": "Local settings.json",
       "localProviderDescription": "Use configuration directly from ~/.claude/settings.json",
       "localProviderHelp": "When using local provider mode:\n• The plugin will not modify your ~/.claude/settings.json file\n• You need to manually manage your configurations\n• Make sure the file exists and contains valid JSON\n• Suitable for advanced users who prefer manual control",
-      "snapshotHint": "Switching providers will modify ~/.claude/settings.json. Recommend to 'Save Snapshot' before switching, then you can 'Restore Snapshot' anytime to recover your configuration",
+      "snapshotHint": "Switching providers will modify ~/.claude/settings.json. Recommend to 'Save Snapshot' before switching, then you can 'Use Snapshot' anytime to recover your configuration",
       "saveSnapshot": "Save Snapshot",
-      "restoreSnapshot": "Restore Snapshot",
+      "restoreSnapshot": "Use Snapshot",
       "previewSnapshot": "Preview Snapshot",
       "snapshotTimestamp": "Snapshot Time",
       "snapshotPreviewTitle": "Snapshot Content Preview",
@@ -733,7 +733,8 @@
     "snapshotSaveFailed": "Failed to save snapshot",
     "snapshotRestored": "Snapshot restored successfully",
     "snapshotRestoreFailed": "Failed to restore snapshot",
-    "snapshotNotFound": "Snapshot not found"
+    "snapshotNotFound": "Snapshot not found",
+    "localProviderSwitchSuccess": "Switched to local settings.json\n\nConfiguration will be read directly from ~/.claude/settings.json and won't be overwritten."
   },
   "config": {
     "clickToCopy": "Click to copy",
