@@ -5,8 +5,8 @@ import { debugLog, debugError } from '../../../utils/debug.js';
 /** localStorage key for chat input attachments draft */
 export const ATTACHMENTS_DRAFT_KEY = 'chat-input-attachments-draft';
 
-/** Maximum size for serialized attachments draft (500KB) */
-const MAX_DRAFT_SIZE = 500000;
+/** Maximum size for serialized attachments draft (2MB) */
+const MAX_DRAFT_SIZE = 2097152; // 2 * 1024 * 1024
 
 /**
  * Check if localStorage is available and working
@@ -172,10 +172,10 @@ export interface UseAttachmentPersistenceReturn {
  *
  * IMPORTANT: This hook stores attachment metadata AND base64-encoded image data
  * in localStorage, which has limited quota (typically 5-10MB per domain).
- * Large images or multiple attachments may exceed the 500KB limit and fail to persist.
+ * Large images or multiple attachments may exceed the 2MB limit and fail to persist.
  *
  * Current Limitations:
- * - Max draft size: 500KB (base64 images can be 1-5MB each)
+ * - Max draft size: 2MB (base64 images can be 1-5MB each)
  * - If size exceeds limit, draft is silently skipped (logged to console)
  * - Consider IndexedDB for larger attachments in future
  *
