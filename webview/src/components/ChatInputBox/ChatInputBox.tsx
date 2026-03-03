@@ -36,6 +36,7 @@ import {
   useNativeEventCapture,
   useControlledValueSync,
   useAttachmentHandlers,
+  useAttachmentPersistence,
   useChatInputImperativeHandle,
   useSpaceKeyListener,
   useResizableChatInputBox,
@@ -137,6 +138,13 @@ export const ChatInputBox = memo(forwardRef<ChatInputBoxHandle, ChatInputBoxProp
     // Internal attachments state (if not provided externally)
     const [internalAttachments, setInternalAttachments] = useState<Attachment[]>([]);
     const attachments = externalAttachments ?? internalAttachments;
+
+    // Attachment persistence hook - auto-save/restore attachments from localStorage
+    const { clearDraft: clearAttachmentsDraft } = useAttachmentPersistence({
+      attachments: internalAttachments,
+      isControlled: externalAttachments !== undefined,
+      onRestore: setInternalAttachments,
+    });
 
     // Input element refs and state
     const containerRef = useRef<HTMLDivElement>(null);
@@ -601,6 +609,7 @@ export const ChatInputBox = memo(forwardRef<ChatInputBoxHandle, ChatInputBoxProp
       },
       externalAttachments,
       setInternalAttachments,
+      clearAttachmentsDraft,
       fileCompletion,
       commandCompletion,
       agentCompletion,
