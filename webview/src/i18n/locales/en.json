@@ -250,7 +250,8 @@
     "mcp": "MCP Servers",
     "mcpDesc": "Configure and manage Model Context Protocol servers",
     "permissions": "Permissions",
-    "permissionsDesc": "Manage Claude Code and Codex permission and sandbox policies",
+    "permissionsDesc": "Manage Claude Code file access and operation permissions",
+    "codexPermissionsDesc": "Manage Codex permissions and sandbox policies",
     "permissionsPanel": {
       "codexSandboxTitle": "Codex Sandbox Mode",
       "codexSandboxDesc": "Control system access boundaries when Codex executes commands. Keep workspace-write by default and only enable full access when required.",

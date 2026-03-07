@@ -2,23 +2,20 @@ import { useTranslation } from 'react-i18next';
 import styles from './style.module.less';
 
 interface PermissionsSectionProps {
-  currentProvider?: 'claude' | 'codex' | string;
   codexSandboxMode: 'workspace-write' | 'danger-full-access';
   onCodexSandboxModeChange: (mode: 'workspace-write' | 'danger-full-access') => void;
 }
 
 const PermissionsSection = ({
-  currentProvider,
   codexSandboxMode,
   onCodexSandboxModeChange,
 }: PermissionsSectionProps) => {
   const { t } = useTranslation();
-  const isCodexMode = currentProvider === 'codex';
 
   return (
     <div className={styles.configSection}>
       <h3 className={styles.sectionTitle}>{t('settings.permissions')}</h3>
-      <p className={styles.sectionDesc}>{t('settings.permissionsDesc')}</p>
+      <p className={styles.sectionDesc}>{t('settings.codexPermissionsDesc', { defaultValue: t('settings.permissionsDesc') })}</p>
 
       <div className={styles.panel}>
         <div className={styles.panelHeader}>
@@ -62,13 +59,6 @@ const PermissionsSection = ({
           <span>{t('settings.permissionsPanel.hint')}</span>
         </small>
       </div>
-
-      {!isCodexMode && (
-        <div className={styles.notice}>
-          <span className="codicon codicon-lightbulb" />
-          <span>{t('settings.permissionsPanel.claudeTip')}</span>
-        </div>
-      )}
     </div>
   );
 };

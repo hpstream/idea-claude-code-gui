@@ -250,7 +250,8 @@
     "mcp": "MCP 服务器",
     "mcpDesc": "配置和管理 Model Context Protocol 服务器",
     "permissions": "权限配置",
-    "permissionsDesc": "管理 Claude Code 与 Codex 的权限和沙箱策略",
+    "permissionsDesc": "管理 Claude Code 的文件访问和操作权限",
+    "codexPermissionsDesc": "管理 Codex 的权限和沙箱策略",
     "permissionsPanel": {
       "codexSandboxTitle": "Codex 沙箱模式",
       "codexSandboxDesc": "控制 Codex 执行命令时的系统权限边界。推荐默认使用 workspace-write，仅在确有需要时开启 full access。",

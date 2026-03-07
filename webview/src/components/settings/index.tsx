@@ -798,11 +798,14 @@ const SettingsView = ({
 
           {/* Permissions configuration */}
           <div style={{ display: currentTab === 'permissions' ? 'block' : 'none' }}>
-            <PermissionsSection
-              currentProvider={currentProvider}
-              codexSandboxMode={codexSandboxMode}
-              onCodexSandboxModeChange={handleCodexSandboxModeChange}
-            />
+            {currentProvider === 'codex' ? (
+              <PermissionsSection
+                codexSandboxMode={codexSandboxMode}
+                onCodexSandboxModeChange={handleCodexSandboxModeChange}
+              />
+            ) : (
+              <PlaceholderSection type="permissions" />
+            )}
           </div>
 
           {/* Commit AI configuration */}
