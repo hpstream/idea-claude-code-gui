@@ -419,6 +419,21 @@ interface Window {
   updatePrompts?: (json: string) => void;
 
   /**
+   * Update global prompts list
+   */
+  updateGlobalPrompts?: (json: string) => void;
+
+  /**
+   * Update project prompts list
+   */
+  updateProjectPrompts?: (json: string) => void;
+
+  /**
+   * Update project info
+   */
+  updateProjectInfo?: (json: string) => void;
+
+  /**
    * Prompt operation result callback
    */
   promptOperationResult?: (json: string) => void;

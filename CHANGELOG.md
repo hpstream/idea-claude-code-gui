@@ -1,3 +1,19 @@
+##### **2026年3月7日（v0.2.7）**
+
+English:
+
+✨ Features
+- Project-level prompt storage: dual-scope prompt management (global + project), store project prompts in `.codemoss/prompt.json` within project root for team sharing via Git, separate UI sections for global and project prompts with complete CRUD operations (create, read, update, delete), import/export support for both scopes, "Copy to Global" feature for project prompts, chat autocomplete displays both scopes with labels ([Global]/[Project]), multi-project support showing only active project prompts
+- Abstract prompt manager architecture: refactor PromptManager to AbstractPromptManager base class with template methods, GlobalPromptManager for `~/.codemoss/prompt.json`, ProjectPromptManager for `<project>/.codemoss/prompt.json`, PromptManagerFactory for scope-based manager creation, PromptScope enum (GLOBAL/PROJECT), backward-compatible API with deprecated methods defaulting to global scope
+
+中文：
+
+✨ Features
+- 项目级别提示词存储：双作用域提示词管理（全局 + 项目），项目提示词存储在项目根目录的 `.codemoss/prompt.json` 文件中可通过 Git 团队共享，全局和项目提示词分区展示并支持完整的增删改查操作，两个作用域均支持导入/导出功能，项目提示词支持 "复制到全局" 功能，聊天自动补全同时显示两种作用域并带标签区分（[全局]/[项目]），多项目支持仅显示当前活动项目的提示词
+- 抽象提示词管理架构：PromptManager 重构为 AbstractPromptManager 抽象基类并使用模板方法，GlobalPromptManager 管理 `~/.codemoss/prompt.json`，ProjectPromptManager 管理 `<project>/.codemoss/prompt.json`，PromptManagerFactory 用于基于作用域创建管理器，PromptScope 枚举（GLOBAL/PROJECT），向后兼容 API 通过废弃方法默认使用全局作用域
+
+---
+
 ##### **2026年3月5日（v0.2.6）**
 
 English:

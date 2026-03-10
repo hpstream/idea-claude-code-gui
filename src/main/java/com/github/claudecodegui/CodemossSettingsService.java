@@ -1,12 +1,15 @@
 package com.github.claudecodegui;
 
+import com.github.claudecodegui.model.ConflictStrategy;
 import com.github.claudecodegui.model.DeleteResult;
+import com.github.claudecodegui.model.PromptScope;
 import com.github.claudecodegui.settings.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.FileReader;
@@ -40,7 +43,6 @@ public class CodemossSettingsService {
     private final CodexMcpServerManager codexMcpServerManager;
     private final WorkingDirectoryManager workingDirectoryManager;
     private final AgentManager agentManager;
-    private final PromptManager promptManager;
     private final SkillManager skillManager;
     private final McpServerManager mcpServerManager;
     private final ProviderManager providerManager;
@@ -75,9 +77,6 @@ public class CodemossSettingsService {
 
         // Initialize AgentManager
         this.agentManager = new AgentManager(gson, pathManager);
-
-        // Initialize PromptManager
-        this.promptManager = new PromptManager(gson, pathManager);
 
         // Initialize SkillManager
         this.skillManager = new SkillManager(
@@ -680,28 +679,149 @@ public class CodemossSettingsService {
 
     // ==================== Prompts Management ====================
 
+    /**
+     * Get a PromptManager for the specified scope.
+     * Creates managers on-demand using PromptManagerFactory.
+     *
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @return An AbstractPromptManager instance for the specified scope
+     */
+    public AbstractPromptManager getPromptManager(PromptScope scope, Project project) {
+        return PromptManagerFactory.create(scope, gson, pathManager, project);
+    }
+
+    /**
+     * Get prompts from the specified scope.
+     *
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @return List of prompts
+     * @throws IOException if reading fails
+     */
+    public List<JsonObject> getPrompts(PromptScope scope, Project project) throws IOException {
+        return getPromptManager(scope, project).getPrompts();
+    }
+
+    /**
+     * Add a prompt to the specified scope.
+     *
+     * @param prompt The prompt to add
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @throws IOException if writing fails
+     */
+    public void addPrompt(JsonObject prompt, PromptScope scope, Project project) throws IOException {
+        getPromptManager(scope, project).addPrompt(prompt);
+    }
+
+    /**
+     * Update a prompt in the specified scope.
+     *
+     * @param id The prompt ID
+     * @param updates The updates to apply
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @throws IOException if writing fails
+     */
+    public void updatePrompt(String id, JsonObject updates, PromptScope scope, Project project) throws IOException {
+        getPromptManager(scope, project).updatePrompt(id, updates);
+    }
+
+    /**
+     * Delete a prompt from the specified scope.
+     *
+     * @param id The prompt ID
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @return true if deleted, false if not found
+     * @throws IOException if writing fails
+     */
+    public boolean deletePrompt(String id, PromptScope scope, Project project) throws IOException {
+        return getPromptManager(scope, project).deletePrompt(id);
+    }
+
+    /**
+     * Get a prompt by ID from the specified scope.
+     *
+     * @param id The prompt ID
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @return The prompt JsonObject, or null if not found
+     * @throws IOException if reading fails
+     */
+    public JsonObject getPrompt(String id, PromptScope scope, Project project) throws IOException {
+        return getPromptManager(scope, project).getPrompt(id);
+    }
+
+    /**
+     * Batch import prompts to the specified scope.
+     *
+     * @param promptsToImport The prompts to import
+     * @param strategy The conflict resolution strategy
+     * @param scope The prompt scope (GLOBAL or PROJECT)
+     * @param project The IntelliJ Project instance (required for PROJECT scope, can be null for GLOBAL scope)
+     * @return A map containing the results of the import operation
+     * @throws IOException if writing fails
+     */
+    public Map<String, Object> batchImportPrompts(List<JsonObject> promptsToImport, ConflictStrategy strategy, PromptScope scope, Project project) throws IOException {
+        return getPromptManager(scope, project).batchImportPrompts(promptsToImport, strategy);
+    }
+
+    // ==================== Deprecated Backward-Compatible Methods ====================
+
+    /**
+     * Get a PromptManager (defaults to GLOBAL scope).
+     * @deprecated Use {@link #getPromptManager(PromptScope, Project)} instead
+     */
+    @Deprecated
+    public AbstractPromptManager getPromptManager() {
+        return getPromptManager(PromptScope.GLOBAL, null);
+    }
+
+    /**
+     * Get prompts (defaults to GLOBAL scope).
+     * @deprecated Use {@link #getPrompts(PromptScope, Project)} instead
+     */
+    @Deprecated
     public List<JsonObject> getPrompts() throws IOException {
-        return promptManager.getPrompts();
+        return getPrompts(PromptScope.GLOBAL, null);
     }
 
+    /**
+     * Add a prompt (defaults to GLOBAL scope).
+     * @deprecated Use {@link #addPrompt(JsonObject, PromptScope, Project)} instead
+     */
+    @Deprecated
     public void addPrompt(JsonObject prompt) throws IOException {
-        promptManager.addPrompt(prompt);
+        addPrompt(prompt, PromptScope.GLOBAL, null);
     }
 
+    /**
+     * Update a prompt (defaults to GLOBAL scope).
+     * @deprecated Use {@link #updatePrompt(String, JsonObject, PromptScope, Project)} instead
+     */
+    @Deprecated
     public void updatePrompt(String id, JsonObject updates) throws IOException {
-        promptManager.updatePrompt(id, updates);
+        updatePrompt(id, updates, PromptScope.GLOBAL, null);
     }
 
+    /**
+     * Delete a prompt (defaults to GLOBAL scope).
+     * @deprecated Use {@link #deletePrompt(String, PromptScope, Project)} instead
+     */
+    @Deprecated
     public boolean deletePrompt(String id) throws IOException {
-        return promptManager.deletePrompt(id);
+        return deletePrompt(id, PromptScope.GLOBAL, null);
     }
 
+    /**
+     * Get a prompt by ID (defaults to GLOBAL scope).
+     * @deprecated Use {@link #getPrompt(String, PromptScope, Project)} instead
+     */
+    @Deprecated
     public JsonObject getPrompt(String id) throws IOException {
-        return promptManager.getPrompt(id);
-    }
-
-    public PromptManager getPromptManager() {
-        return promptManager;
+        return getPrompt(id, PromptScope.GLOBAL, null);
     }
 
     // ==================== Sound Notification Management ====================
